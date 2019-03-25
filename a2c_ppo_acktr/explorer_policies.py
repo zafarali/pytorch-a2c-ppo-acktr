@@ -11,6 +11,7 @@ class MixCategorical(Categorical):
     def __init__(self, num_inputs, num_outputs):
         super(MixCategorical, self).__init__()
         self.exploration_parameters = None
+        self.num_outputs = num_outputs
 
     def set_exploration_parameters(self, exp_ps):
         if self.exploration_parameters is None:
@@ -23,7 +24,10 @@ class MixCategorical(Categorical):
         if deterministic:
             mixed_x = x
         else:
-            mixed_x = x / self.exploration_parameters
+            mixed_x = (
+                x * self.exploration_parameters +
+                (1-self.exploration_parameters) * 1/self.num_outputs
+            )
         return FixedCategorical(probs=mixed_x)
 
 
@@ -48,3 +52,5 @@ class MixPolicy(Policy):
         else:
             raise NotImplementedError
 
+    def evaluate_actions(self, inputs, rnn_hxs, masks, action, exp_ps):
+       pass
