@@ -2,7 +2,8 @@ import contextlib
 import os
 from abc import ABC, abstractmethod
 
-from baselines.common.tile_images import tile_images
+#from baselines.common.tile_images import tile_images
+tile_images = lambda x: x
 
 class AlreadySteppingError(Exception):
     """
