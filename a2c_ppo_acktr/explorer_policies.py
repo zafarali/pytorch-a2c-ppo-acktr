@@ -25,8 +25,8 @@ class MixCategorical(Categorical):
             mixed_x = x
         else:
             mixed_x = (
-                x * self.exploration_parameters +
-                (1-self.exploration_parameters) * 1/self.num_outputs
+                x * (1-self.exploration_parameters) +
+                self.exploration_parameters * 1/self.num_outputs
             )
         return FixedCategorical(probs=mixed_x)
 
@@ -38,8 +38,6 @@ class MixGauss(DiagGaussian):
 class MixPolicy(Policy):
     def __init__(self, obs_shape, action_space, base=None, base_kwargs=None):
         super(Policy, self).__init__()
-
-
         if action_space.__class__.__name__ == "Discrete":
             num_outputs = action_space.n
             self.dist = MixCategorical(self.base.output_size, num_outputs)
@@ -53,4 +51,19 @@ class MixPolicy(Policy):
             raise NotImplementedError
 
     def evaluate_actions(self, inputs, rnn_hxs, masks, action, exp_ps):
-       pass
+        # Evaluate actions to be used in the policy gradient update.
+        value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
+        self.dist.set_exploration_parameters(torch.zeros_like(exp_ps))
+        dist = self.dist(actor_features)
+        action_log_probs = dist.log_probs(action)
+        dist_entropy = dist.entropy().mean()
+
+        self.dist.set_exploration_parameters(exp_ps)
+        dist = self.dist(actor_features)
+        behaviour_log_probs = dist.log_probs(action)
+
+        correction_ratio = (action_log_probs - behaviour_log_probs).exp().detach()
+
+        return value, action_log_probs, dist_entropy, rnn_hxs, correction_ratio 
+
+
