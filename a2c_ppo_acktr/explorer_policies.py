@@ -66,4 +66,8 @@ class MixPolicy(Policy):
 
         return value, action_log_probs, dist_entropy, rnn_hxs, correction_ratio 
 
-
+    def act(self, inputs, rnn_hxs, masks, deterministic=False):
+        if deterministic:
+            self.dist.set_exploration_parameters(
+                    torch.zeros_like(self.dist.exploration_parameters))
+        return super().act(inputs, rnn_hxs, masks, deterministic=deterministic)

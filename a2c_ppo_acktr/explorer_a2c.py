@@ -26,7 +26,7 @@ class A2C_explorer(a2c_aktr.A2C_ACKTR):
         value_loss = advantages.pow(2).mean()
 
         action_loss = -(advantages.detach() * action_log_probs).mean()
-
+        # Apply the corrections for each part of the loss.
         self.optimizer.zero_grad()
         (correction_ratios * (
             value_loss * self.value_loss_coef + action_loss -
