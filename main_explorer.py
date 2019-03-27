@@ -11,13 +11,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from a2c_ppo_acktr import algo, utils
+from a2c_ppo_acktr import explorer_a2c, utils
 from a2c_ppo_acktr.arguments import get_args
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.explorer_policies import MixPolicy
 from a2c_ppo_acktr.explorer_storage import RolloutStorageWithExploration
+from a2c_ppo_acktr.explorer_manager import GaussianExplorer
 from evaluation import evaluate
 
+EXPLORER_LAG = 15
 
 def main():
     args = get_args()
@@ -40,14 +42,14 @@ def main():
     envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
                          args.gamma, args.log_dir, device, False)
 
-    actor_critic = Policy(
+    actor_critic = MixPolicy(
         envs.observation_space.shape,
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy})
     actor_critic.to(device)
 
     if args.algo == 'a2c':
-        agent = algo.A2C_ACKTR(
+        agent = algo.A2C_explorer(
             actor_critic,
             args.value_loss_coef,
             args.entropy_coef,
@@ -55,34 +57,28 @@ def main():
             eps=args.eps,
             alpha=args.alpha,
             max_grad_norm=args.max_grad_norm)
-    elif args.algo == 'ppo':
-        agent = algo.PPO(
-            actor_critic,
-            args.clip_param,
-            args.ppo_epoch,
-            args.num_mini_batch,
-            args.value_loss_coef,
-            args.entropy_coef,
-            lr=args.lr,
-            eps=args.eps,
-            max_grad_norm=args.max_grad_norm)
-    elif args.algo == 'acktr':
-        agent = algo.A2C_ACKTR(
-            actor_critic, args.value_loss_coef, args.entropy_coef, acktr=True)
+    else:
+        raise NotImplementedError('Mix only works for A2C right now.')
 
-    rollouts = RolloutStorage(args.num_steps, args.num_processes,
-                              envs.observation_space.shape, envs.action_space,
-                              actor_critic.recurrent_hidden_state_size)
-
+    rollouts = RolloutStorageWithExploration(
+            args.num_steps, args.num_processes,
+            envs.observation_space.shape, envs.action_space,
+            actor_critic.recurrent_hidden_state_size)
+    exploration_manager = GaussianExplorer()
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
     episode_rewards = deque(maxlen=10)
+    explorer_episode_rewards= deque(maxlen=EXPLORER_LAG)
+    explorer_exp_params = deque(maxlen=EXPLORER_LAG)
 
     start = time.time()
     num_updates = int(
         args.num_env_steps) // args.num_steps // args.num_processes
+    # Draw initial exploration parameters:
+    exp_ps = exploration_manager.draw_exploration_coefficients(args.num_processes)
+
     for j in range(num_updates):
 
         if args.use_linear_lr_decay:
@@ -91,8 +87,9 @@ def main():
                 agent.optimizer, j, num_updates,
                 agent.optimizer.lr if args.algo == "acktr" else args.lr)
 
-        if args.algo == 'ppo' and args.use_linear_clip_decay:
-            agent.clip_param = args.clip_param * (1 - j / float(num_updates))
+        exp_ps = exploration_manager.draw_exploration_coefficients(args.num_processes)
+        exp_ps = torch.from_numpy(exp_ps).to(device)
+        actor_critic.dist.set_exploration_parameters(exp_ps)
 
         for step in range(args.num_steps):
             # Sample actions
@@ -104,9 +101,17 @@ def main():
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action)
 
-            for info in infos:
+            for info in enumerate(infos):
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
+
+                    # Save rewards and exploration parameters to use in updates.
+                    explorer_episode_rewards.append(info['episode']['r'])
+                    explorer_exp_params.append(exp_ps[i].item())
+
+                    # Obtain a new exploration coefficient for this environment.
+                    new_exp_ps = exploration_manager.draw_exploration_coefficients(1)
+                    exp_ps[i].copy_(torch.from_numpy(new_exp_ps).to(device))
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -128,6 +133,11 @@ def main():
         value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
         rollouts.after_update()
+        if len(explorer_exp_params) >= EXPLORER_LAG:
+            exploration_manager.update_exploration_distribution(
+                np.array(explorer_exp_params).reshape(args.num_processes,1)
+                np.array(explorer_episode_rewards).reshape(args.num_processes, 1)
+            )
 
         # save for every interval-th episode or for the last epoch
         if (j % args.save_interval == 0
