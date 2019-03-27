@@ -4,18 +4,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from a2c_ppo_acktr.distributions import Categorical, DiagGaussian
-from a2c_ppo_acktr.models import Policy
+from a2c_ppo_acktr.distributions import Categorical, FixedCategorical, DiagGaussian
+from a2c_ppo_acktr.model import Policy
 
 class MixCategorical(Categorical):
     def __init__(self, num_inputs, num_outputs):
-        super(MixCategorical, self).__init__()
+        super(MixCategorical, self).__init__(num_inputs, num_outputs)
         self.exploration_parameters = None
         self.num_outputs = num_outputs
 
     def set_exploration_parameters(self, exp_ps):
         if self.exploration_parameters is None:
-            self.exploration_parameters = torch.zeros_like(exp_ps)
+            self.exploration_parameters = torch.zeros_like(exp_ps).float()
 
         self.exploration_parameters.copy_(exp_ps)
 
@@ -37,7 +37,7 @@ class MixGauss(DiagGaussian):
 
 class MixPolicy(Policy):
     def __init__(self, obs_shape, action_space, base=None, base_kwargs=None):
-        super(Policy, self).__init__()
+        super(MixPolicy, self).__init__(obs_shape, action_space, base, base_kwargs)
         if action_space.__class__.__name__ == "Discrete":
             num_outputs = action_space.n
             self.dist = MixCategorical(self.base.output_size, num_outputs)
@@ -71,3 +71,4 @@ class MixPolicy(Policy):
             self.dist.set_exploration_parameters(
                     torch.zeros_like(self.dist.exploration_parameters))
         return super().act(inputs, rnn_hxs, masks, deterministic=deterministic)
+

@@ -49,7 +49,7 @@ def main():
     actor_critic.to(device)
 
     if args.algo == 'a2c':
-        agent = algo.A2C_explorer(
+        agent = explorer_a2c.A2C_explorer(
             actor_critic,
             args.value_loss_coef,
             args.entropy_coef,
@@ -101,17 +101,17 @@ def main():
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action)
 
-            for info in enumerate(infos):
+            for i_info, info in enumerate(infos):
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
 
                     # Save rewards and exploration parameters to use in updates.
                     explorer_episode_rewards.append(info['episode']['r'])
-                    explorer_exp_params.append(exp_ps[i].item())
+                    explorer_exp_params.append(exp_ps[i_info].item())
 
                     # Obtain a new exploration coefficient for this environment.
                     new_exp_ps = exploration_manager.draw_exploration_coefficients(1)
-                    exp_ps[i].copy_(torch.from_numpy(new_exp_ps).to(device))
+                    exp_ps[i_info].copy_(torch.from_numpy(new_exp_ps).to(device))
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -120,7 +120,8 @@ def main():
                 [[0.0] if 'bad_transition' in info.keys() else [1.0]
                  for info in infos])
             rollouts.insert(obs, recurrent_hidden_states, action,
-                            action_log_prob, value, reward, masks, bad_masks)
+                            action_log_prob, value, reward, masks,
+                            bad_masks, exp_ps)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
@@ -130,12 +131,12 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy = agent.update(rollouts, exp_ps)
 
         rollouts.after_update()
         if len(explorer_exp_params) >= EXPLORER_LAG:
             exploration_manager.update_exploration_distribution(
-                np.array(explorer_exp_params).reshape(args.num_processes,1)
+                np.array(explorer_exp_params).reshape(args.num_processes,1),
                 np.array(explorer_episode_rewards).reshape(args.num_processes, 1)
             )
 
@@ -157,13 +158,15 @@ def main():
             total_num_steps = (j + 1) * args.num_processes * args.num_steps
             end = time.time()
             print(
-                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+                ("Updates {}, num timesteps {}, FPS {} \n Last {}"
+                 "training episodes: mean/median reward {:.1f}/{:.1f},"
+                 "min/max reward {:.1f}/{:.1f}, exploration coeff: {:.1f}\n")
                 .format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
                         len(episode_rewards), np.mean(episode_rewards),
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
-                        action_loss))
+                        action_loss, exploration_manager.mu))
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
