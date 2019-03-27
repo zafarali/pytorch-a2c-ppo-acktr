@@ -78,7 +78,7 @@ def main():
         args.num_env_steps) // args.num_steps // args.num_processes
     # Draw initial exploration parameters:
     exp_ps = exploration_manager.draw_exploration_coefficients(args.num_processes)
-
+    exp_ps = torch.from_numpy(exp_ps).to(device)
     for j in range(num_updates):
 
         if args.use_linear_lr_decay:
@@ -87,8 +87,6 @@ def main():
                 agent.optimizer, j, num_updates,
                 agent.optimizer.lr if args.algo == "acktr" else args.lr)
 
-        exp_ps = exploration_manager.draw_exploration_coefficients(args.num_processes)
-        exp_ps = torch.from_numpy(exp_ps).to(device)
         actor_critic.dist.set_exploration_parameters(exp_ps)
 
         for step in range(args.num_steps):
@@ -121,7 +119,7 @@ def main():
                  for info in infos])
             rollouts.insert(obs, recurrent_hidden_states, action,
                             action_log_prob, value, reward, masks,
-                            bad_masks, exp_ps)
+                            bad_masks, actor_critic.dist.exploration_parameters)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
@@ -171,6 +169,7 @@ def main():
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
             ob_rms = utils.get_vec_normalize(envs).ob_rms
+            actor_critic.dist.set_exploration_parameters(torch.zeros(args.num_processes, 1).to(device))
             evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
 
