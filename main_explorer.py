@@ -110,7 +110,7 @@ def main():
                     explorer_exp_params.append(exp_ps[i_info].item())
 
                     # Obtain a new exploration coefficient for this environment.
-                    new_exp_ps = exploration_manager.draw_exploration_coefficients(1)
+                    new_exp_ps = exploration_manager.draw_exploration_coefficients(1)[0]
                     exp_ps[i_info].copy_(torch.from_numpy(new_exp_ps).to(device))
 
             # If done then clean the history of observations.
@@ -131,13 +131,13 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = agent.update(rollouts, exp_ps)
+        value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
         rollouts.after_update()
         if len(explorer_exp_params) >= EXPLORER_LAG:
             exploration_manager.update_exploration_distribution(
-                np.array(explorer_exp_params).reshape(args.num_processes,1),
-                np.array(explorer_episode_rewards).reshape(args.num_processes, 1)
+                np.array(explorer_exp_params).reshape(-1),
+                np.array(explorer_episode_rewards).reshape(-1)
             )
 
         # save for every interval-th episode or for the last epoch

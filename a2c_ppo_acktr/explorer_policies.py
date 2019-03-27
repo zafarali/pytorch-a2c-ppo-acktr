@@ -14,10 +14,7 @@ class MixCategorical(Categorical):
         self.num_outputs = num_outputs
 
     def set_exploration_parameters(self, exp_ps):
-        if self.exploration_parameters is None:
-            self.exploration_parameters = torch.zeros_like(exp_ps).float()
-
-        self.exploration_parameters.copy_(exp_ps)
+        self.exploration_parameters = torch.zeros_like(exp_ps).float()
 
     def forward(self, x, deterministic=False):
         x = F.softmax(self.linear(x), 1)
