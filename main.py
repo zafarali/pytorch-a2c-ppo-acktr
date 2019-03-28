@@ -19,11 +19,11 @@ from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
 
 import os
-import mlresearchkit.io import utils as mlio
+from mlresearchkit.io import utils as mlio
 
 def main():
     args = get_args()
-
+    mlio.create_folder(args.log_dir)
     summary_path = os.path.join(args.log_dir, 'summary.csv')
     mlio.argparse_saver(os.path.join(args.log_dir, 'args.txt'), args)
     torch.manual_seed(args.seed)
@@ -171,13 +171,11 @@ def main():
                 ob_rms = None
             mean_rew, std_rew = evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
+
             mlio.put(summary_path,
-                    ('{},mean_deterministic_reward,'
-                       'std_deterministic_reward,entropy,'
-                       'exploration_coeff,mean_correction,actor_loss,'
-                       'value_loss').format(
-                           total_num_steps, mean_rew, std_rew,
-                           dist_entropy, 1.0, 1.0, action_loss, value_loss))
+                    ('{},{},{},{},{},{},{},{}').format(
+                    total_num_steps, mean_rew, std_rew,
+                    dist_entropy, 1.0, 1.0, action_loss, value_loss))
 
 
 

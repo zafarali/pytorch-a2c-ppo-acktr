@@ -26,7 +26,7 @@ EXPLORER_LAG = 15
 
 def main():
     args = get_args()
-    
+    mlio.create_folder(args.log_dir)
     summary_path = os.path.join(args.log_dir, 'summary.csv')
     mlio.argparse_saver(os.path.join(args.log_dir, 'args.txt'), args)
     torch.manual_seed(args.seed)
@@ -185,10 +185,7 @@ def main():
             mean_rew, std_rew = evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
             mlio.put(summary_path,
-                    ('{},mean_deterministic_reward,'
-                       'std_deterministic_reward,entropy,'
-                       'exploration_coeff,mean_correction,actor_loss,'
-                       'value_loss').format(
+                    ('{},{},{},{},{},{},{},{}').format(
                            total_num_steps, mean_rew, std_rew,
                            dist_entropy, exploration_manager.mu,
                            mean_correction, action_loss, value_loss))
