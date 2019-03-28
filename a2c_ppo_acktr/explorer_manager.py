@@ -21,8 +21,9 @@ class GaussianExplorer(object):
     def update_exploration_distribution(self, exp_ps, rewards):
         rewards_energy_dist = np.exp(rewards)
         rewards_energy_dist /= np.sum(np.exp(rewards))
-
         self.mu = np.clip(
                 np.sum(exp_ps * rewards_energy_dist),
                 self.lower_bound, self.upper_bound)
+
+
 
