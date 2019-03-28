@@ -20,7 +20,7 @@ from a2c_ppo_acktr.explorer_manager import GaussianExplorer
 from evaluation import evaluate
 
 import os
-from mlreserachkit.io import utils as mlio
+from mlresearchkit.io import utils as mlio
 
 EXPLORER_LAG = 15
 
@@ -184,7 +184,7 @@ def main():
             actor_critic.dist.set_exploration_parameters(torch.zeros(args.num_processes, 1).to(device))
             mean_rew, std_rew = evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
-            mlio.put(summary_path,
+            mlio.stash(summary_path,
                     ('{},{},{},{},{},{},{},{}').format(
                            total_num_steps, mean_rew, std_rew,
                            dist_entropy, exploration_manager.mu,

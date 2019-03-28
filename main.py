@@ -172,7 +172,7 @@ def main():
             mean_rew, std_rew = evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
 
-            mlio.put(summary_path,
+            mlio.stash(summary_path,
                     ('{},{},{},{},{},{},{},{}').format(
                     total_num_steps, mean_rew, std_rew,
                     dist_entropy, 1.0, 1.0, action_loss, value_loss))
