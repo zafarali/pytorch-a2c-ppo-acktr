@@ -16,7 +16,7 @@ from a2c_ppo_acktr.arguments import get_args
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.explorer_policies import MixPolicy
 from a2c_ppo_acktr.explorer_storage import RolloutStorageWithExploration
-from a2c_ppo_acktr.explorer_manager import GaussianExplorer
+from a2c_ppo_acktr.explorer_manager import DecayExplorer, GaussianExplorer
 from evaluation import evaluate
 
 import os

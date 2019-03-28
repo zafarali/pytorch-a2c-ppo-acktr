@@ -30,11 +30,15 @@ class DecayExplorer(object):
         self.start_exploration = start_exploration
         self.decay_rate = decay_rate
         self.current_exploration = start_exploration
+        self.lower_bound = lower_bound
 
     def draw_exploration_coefficients(self, batch_size):
-        return np.clip(np.ones((batch_size, 1)) * self.current_exploration, lower_bound, 1.0)
-    
+        return np.ones((batch_size, 1)) * self.current_exploration
+
     def update_exploration_distribution(self, exp_ps, rewards):
         self.current_exploration *= self.decay_rate
+        self.current_exploration = np.clip(self.current_exploration, self.lower_bound, 1.0)
 
-
+    @property
+    def mu(self):
+        return self.current_exploration
