@@ -80,7 +80,6 @@ def main():
     exp_ps = exploration_manager.draw_exploration_coefficients(args.num_processes)
     exp_ps = torch.from_numpy(exp_ps).to(device)
     for j in range(num_updates):
-
         if args.use_linear_lr_decay:
             # decrease learning rate linearly
             utils.update_linear_schedule(
@@ -158,13 +157,13 @@ def main():
             print(
                 ("Updates {}, num timesteps {}, FPS {} \n Last {}"
                  "training episodes: mean/median reward {:.1f}/{:.1f},"
-                 "min/max reward {:.1f}/{:.1f}, exploration coeff: {:.1f}\n")
+                 "min/max reward {:.1f}/{:.1f}, entropy:{},  exploration coeff: {}\n")
                 .format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
                         len(episode_rewards), np.mean(episode_rewards),
                         np.median(episode_rewards), np.min(episode_rewards),
-                        np.max(episode_rewards), dist_entropy, value_loss,
-                        action_loss, exploration_manager.mu))
+                        np.max(episode_rewards), dist_entropy,
+                        exploration_manager.mu))
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
