@@ -187,7 +187,10 @@ def main():
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
-            ob_rms = utils.get_vec_normalize(envs).ob_rms
+            if len(envs.observation_space.shape) == 1:
+                ob_rms = utils.get_vec_normalize(envs).ob_rms
+            else:
+                ob_rms = None
             evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
 
