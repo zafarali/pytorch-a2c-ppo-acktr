@@ -74,7 +74,8 @@ def main():
             args.num_steps, args.num_processes,
             envs.observation_space.shape, envs.action_space,
             actor_critic.recurrent_hidden_state_size)
-    exploration_manager = GaussianExplorer()
+    # exploration_manager = GaussianExplorer()
+    exploration_manager = DecayExplorer()
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)

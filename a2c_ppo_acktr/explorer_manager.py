@@ -25,5 +25,16 @@ class GaussianExplorer(object):
                 np.sum(exp_ps * rewards_energy_dist),
                 self.lower_bound, self.upper_bound)
 
+class DecayExplorer(object):
+    def __init__(self, start_exploration=0.8, decay_rate=0.99995, lower_bound=0.1):
+        self.start_exploration = start_exploration
+        self.decay_rate = decay_rate
+        self.current_exploration = start_exploration
+
+    def draw_exploration_coefficients(self, batch_size):
+        return np.clip(np.ones((batch_size, 1)) * self.current_exploration, lower_bound, 1.0)
+    
+    def update_exploration_distribution(self, exp_ps, rewards):
+        self.current_exploration *= self.decay_rate
 
 
