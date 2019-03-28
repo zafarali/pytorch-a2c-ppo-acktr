@@ -6,6 +6,7 @@ This is a PyTorch implementation of
 * Advantage Actor Critic (A2C), a synchronous deterministic version of [A3C](https://arxiv.org/pdf/1602.01783v1.pdf)
 * Proximal Policy Optimization [PPO](https://arxiv.org/pdf/1707.06347.pdf)
 * Scalable trust-region method for deep reinforcement learning using Kronecker-factored approximation [ACKTR](https://arxiv.org/abs/1708.05144)
+* Generative Adversarial Imitation Learning [GAIL](https://arxiv.org/abs/1606.03476)
 
 Also see the OpenAI posts: [A2C/ACKTR](https://blog.openai.com/baselines-acktr-a2c/) and [PPO](https://blog.openai.com/openai-baselines-ppo/) for more information.
 
@@ -19,7 +20,7 @@ Please use this bibtex if you want to cite this repository in your publications:
       year = {2018},
       publisher = {GitHub},
       journal = {GitHub repository},
-      howpublished = {\url{https://github.com/ikostrikov/pytorch-a2c-ppo-acktr}},
+      howpublished = {\url{https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail}},
     }
 
 ## Supported (and tested) environments (via [OpenAI Gym](https://gym.openai.com))
@@ -87,7 +88,7 @@ python main.py --env-name "PongNoFrameskip-v4"
 #### PPO
 
 ```bash
-python main.py --env-name "PongNoFrameskip-v4" --algo ppo --use-gae --lr 2.5e-4 --clip-param 0.1 --value-loss-coef 0.5 --num-processes 8 --num-steps 128 --num-mini-batch 4 --log-interval 1 --use-linear-lr-decay --use-linear-clip-decay --entropy-coef 0.01
+python main.py --env-name "PongNoFrameskip-v4" --algo ppo --use-gae --lr 2.5e-4 --clip-param 0.1 --value-loss-coef 0.5 --num-processes 8 --num-steps 128 --num-mini-batch 4 --log-interval 1 --use-linear-lr-decay --entropy-coef 0.01
 ```
 
 #### ACKTR
@@ -109,7 +110,7 @@ python main.py --env-name "Reacher-v2" --num-env-steps 1000000
 #### PPO
 
 ```bash
-python main.py --env-name "Reacher-v2" --algo ppo --use-gae --log-interval 1 --num-steps 2048 --num-processes 1 --lr 3e-4 --entropy-coef 0 --value-loss-coef 0.5 --ppo-epoch 10 --num-mini-batch 32 --gamma 0.99 --tau 0.95 --num-env-steps 1000000 --use-linear-lr-decay --use-proper-time-limits
+python main.py --env-name "Reacher-v2" --algo ppo --use-gae --log-interval 1 --num-steps 2048 --num-processes 1 --lr 3e-4 --entropy-coef 0 --value-loss-coef 0.5 --ppo-epoch 10 --num-mini-batch 32 --gamma 0.99 --gae-lambda 0.95 --num-env-steps 1000000 --use-linear-lr-decay --use-proper-time-limits
 ```
 
 #### ACKTR

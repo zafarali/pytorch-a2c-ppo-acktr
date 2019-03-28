@@ -12,6 +12,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from a2c_ppo_acktr import algo, utils
+from a2c_ppo_acktr.algo import gail
 from a2c_ppo_acktr.arguments import get_args
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.model import Policy
@@ -70,6 +71,22 @@ def main():
         agent = algo.A2C_ACKTR(
             actor_critic, args.value_loss_coef, args.entropy_coef, acktr=True)
 
+    if args.gail:
+        assert len(envs.observation_space.shape) == 1
+        discr = gail.Discriminator(
+            envs.observation_space.shape[0] + envs.action_space.shape[0], 100,
+            device)
+        file_name = os.path.join(
+            args.gail_experts_dir, "trajs_{}.pt".format(
+                args.env_name.split('-')[0].lower()))
+
+        gail_train_loader = torch.utils.data.DataLoader(
+            gail.ExpertDataset(
+                file_name, num_trajectories=4, subsample_frequency=20),
+            batch_size=args.gail_batch_size,
+            shuffle=True,
+            drop_last=True)
+
     rollouts = RolloutStorage(args.num_steps, args.num_processes,
                               envs.observation_space.shape, envs.action_space,
                               actor_critic.recurrent_hidden_state_size)
@@ -90,9 +107,6 @@ def main():
             utils.update_linear_schedule(
                 agent.optimizer, j, num_updates,
                 agent.optimizer.lr if args.algo == "acktr" else args.lr)
-
-        if args.algo == 'ppo' and args.use_linear_clip_decay:
-            agent.clip_param = args.clip_param * (1 - j / float(num_updates))
 
         for step in range(args.num_steps):
             # Sample actions
@@ -121,6 +135,22 @@ def main():
             next_value = actor_critic.get_value(
                 rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
                 rollouts.masks[-1]).detach()
+
+        if args.gail:
+            if j >= 10:
+                envs.venv.eval()
+
+            gail_epoch = args.gail_epoch
+            if j < 10:
+                gail_epoch = 100  # Warm up
+            for _ in range(gail_epoch):
+                discr.update(gail_train_loader, rollouts,
+                             utils.get_vec_normalize(envs)._obfilt)
+
+            for step in range(args.num_steps):
+                rollouts.rewards[step] = discr.predict_reward(
+                    rollouts.obs[step], rollouts.actions[step], args.gamma,
+                    rollouts.masks[step])
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
