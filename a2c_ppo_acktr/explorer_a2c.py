@@ -38,5 +38,5 @@ class A2C_explorer(A2C_ACKTR):
 
         self.optimizer.step()
 
-        return value_loss.item(), action_loss.item(), dist_entropy.item()
+        return value_loss.item(), action_loss.item(), dist_entropy.item(), correction_ratios.view(-1).mean().item()
 

@@ -19,11 +19,16 @@ from a2c_ppo_acktr.explorer_storage import RolloutStorageWithExploration
 from a2c_ppo_acktr.explorer_manager import GaussianExplorer
 from evaluation import evaluate
 
+import os
+from mlreserachkit.io import utils as mlio
+
 EXPLORER_LAG = 15
 
 def main():
     args = get_args()
-
+    
+    summary_path = os.path.join(args.log_dir, 'summary.csv')
+    mlio.argparse_saver(os.path.join(args.log_dir, 'args.txt'), args)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
@@ -35,6 +40,11 @@ def main():
     eval_log_dir = log_dir + "_eval"
     utils.cleanup_log_dir(log_dir)
     utils.cleanup_log_dir(eval_log_dir)
+
+    mlio.touch(summary_path)
+    mlio.put(summary_path,
+             ('frames,mean_deterministic_reward,std_deterministic_reward,'
+              'entropy,exploration_coeff,mean_correction,actor_loss,value_loss'))
 
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
@@ -128,7 +138,7 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy, mean_correction = agent.update(rollouts)
 
         rollouts.after_update()
         if len(explorer_exp_params) >= EXPLORER_LAG:
@@ -172,9 +182,16 @@ def main():
             else:
                 ob_rms = None
             actor_critic.dist.set_exploration_parameters(torch.zeros(args.num_processes, 1).to(device))
-            evaluate(actor_critic, ob_rms, args.env_name, args.seed,
+            mean_rew, std_rew = evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
-
+            mlio.put(summary_path,
+                    ('{},mean_deterministic_reward,'
+                       'std_deterministic_reward,entropy,'
+                       'exploration_coeff,mean_correction,actor_loss,'
+                       'value_loss').format(
+                           total_num_steps, mean_rew, std_rew,
+                           dist_entropy, exploration_manager.mu,
+                           mean_correction, action_loss, value_loss))
 
 if __name__ == "__main__":
     main()
