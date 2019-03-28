@@ -18,10 +18,14 @@ from a2c_ppo_acktr.model import Policy
 from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
 
+import os
+import mlresearchkit.io import utils as mlio
 
 def main():
     args = get_args()
 
+    summary_path = os.path.join(args.log_dir, 'summary.csv')
+    mlio.argparse_saver(os.path.join(args.log_dir, 'args.txt'), args)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
@@ -33,6 +37,11 @@ def main():
     eval_log_dir = log_dir + "_eval"
     utils.cleanup_log_dir(log_dir)
     utils.cleanup_log_dir(eval_log_dir)
+
+    mlio.touch(summary_path)
+    mlio.put(summary_path,
+             ('frames,mean_deterministic_reward,std_deterministic_reward,'
+              'entropy,exploration_coeff,mean_correction,actor_loss,value_loss'))
 
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
@@ -160,8 +169,16 @@ def main():
                 ob_rms = utils.get_vec_normalize(envs).ob_rms
             else:
                 ob_rms = None
-            evaluate(actor_critic, ob_rms, args.env_name, args.seed,
+            mean_rew, std_rew = evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
+            mlio.put(summary_path,
+                    ('{},mean_deterministic_reward,'
+                       'std_deterministic_reward,entropy,'
+                       'exploration_coeff,mean_correction,actor_loss,'
+                       'value_loss').format(
+                           total_num_steps, mean_rew, std_rew,
+                           dist_entropy, 1.0, 1.0, action_loss, value_loss))
+
 
 
 if __name__ == "__main__":
