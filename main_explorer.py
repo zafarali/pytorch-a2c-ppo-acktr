@@ -57,7 +57,7 @@ def main():
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy})
     actor_critic.to(device)
-
+    
     if args.algo == 'a2c':
         agent = explorer_a2c.A2C_explorer(
             actor_critic,
@@ -74,8 +74,8 @@ def main():
             args.num_steps, args.num_processes,
             envs.observation_space.shape, envs.action_space,
             actor_critic.recurrent_hidden_state_size)
-    # exploration_manager = GaussianExplorer()
-    exploration_manager = DecayExplorer()
+    exploration_manager = GaussianExplorer()
+    #exploration_manager = DecayExplorer()
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
@@ -147,6 +147,9 @@ def main():
                 np.array(explorer_exp_params).reshape(-1),
                 np.array(explorer_episode_rewards).reshape(-1)
             )
+            # Clear for new batch of data (iid?)
+            explorer_exp_params.clear()
+            explorer_episode_rewards.clear()
 
         # save for every interval-th episode or for the last epoch
         if (j % args.save_interval == 0
