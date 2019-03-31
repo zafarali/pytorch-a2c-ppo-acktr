@@ -22,7 +22,7 @@ from evaluation import evaluate
 import os
 from mlresearchkit.io import utils as mlio
 
-EXPLORER_LAG = 15
+EXPLORER_LAG = 10
 
 def main():
     args = get_args()
@@ -148,8 +148,8 @@ def main():
                 np.array(explorer_episode_rewards).reshape(-1)
             )
             # Clear for new batch of data (iid?)
-            explorer_exp_params.clear()
-            explorer_episode_rewards.clear()
+            #explorer_exp_params.clear()
+            #explorer_episode_rewards.clear()
 
         # save for every interval-th episode or for the last epoch
         if (j % args.save_interval == 0
