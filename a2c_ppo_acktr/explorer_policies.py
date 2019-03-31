@@ -50,7 +50,7 @@ class MixPolicy(Policy):
     def evaluate_actions(self, inputs, rnn_hxs, masks, action, exp_ps):
         # Evaluate actions to be used in the policy gradient update.
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-        self.dist.set_exploration_parameters(torch.zeros_like(exp_ps))
+        #self.dist.set_exploration_parameters(torch.zeros_like(exp_ps))
         dist = self.dist(actor_features)
         action_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()
