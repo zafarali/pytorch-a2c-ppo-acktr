@@ -14,15 +14,15 @@ source $ENT_ENV
 
 ENVIRONMENT="BreakoutNoFrameskip-v4"
 SAVE_LOCATION_REG="${SCRATCH}/Entropy/EntReg/${ENVIRONMENT}/Seed${SLURM_ARRAY_TASK_ID}"
-python3 main.py  --env $ENVIRONMENT --eval-interval 100 --log-dir $SAVE_LOCATION_NO --seed $SLURM_ARRAY_TASK_ID &
+python3 main.py  --env $ENVIRONMENT --eval-interval 100 --log-dir $SAVE_LOCATION_REG --seed $SLURM_ARRAY_TASK_ID &
 
 ENVIRONMENT="PongNoFrameskip-v4"
 SAVE_LOCATION_REG="${SCRATCH}/Entropy/EntReg/${ENVIRONMENT}/Seed${SLURM_ARRAY_TASK_ID}"
-python3 main.py  --env $ENVIRONMENT --eval-interval 100 --log-dir $SAVE_LOCATION_NO --seed $SLURM_ARRAY_TASK_ID & 
+python3 main.py  --env $ENVIRONMENT --eval-interval 100 --log-dir $SAVE_LOCATION_REG --seed $SLURM_ARRAY_TASK_ID & 
 
 ENVIRONMENT="FreewayNoFrameskip-v4"
 SAVE_LOCATION_REG="${SCRATCH}/Entropy/EntReg/${ENVIRONMENT}/Seed${SLURM_ARRAY_TASK_ID}"
-python3 main.py  --env $ENVIRONMENT --eval-interval 100 --log-dir $SAVE_LOCATION_NO --seed $SLURM_ARRAY_TASK_ID
+python3 main.py  --env $ENVIRONMENT --eval-interval 100 --log-dir $SAVE_LOCATION_REG --seed $SLURM_ARRAY_TASK_ID
 
 wait
 
