@@ -149,6 +149,29 @@ def get_args():
         action='store_true',
         default=False,
         help='use a linear schedule on the learning rate')
+
+    # EXPLORER ARGUMENTS
+    parser.add_argument(
+        '--explorer-type',
+        default='Gaussian',
+        type=str,
+        help='The type of explorer to use, Gaussian or Decay.')
+    parser.add_argument(
+        '--explorer-alpha0',
+        default=0.8,
+        type=float,
+        help='Starting alpha for the explorer.')
+    parser.add_argument(
+        '--explorer-alphadelta',
+        default=0.95,
+        type=float,
+        help='The amount of update to apply (explonential averaging).')
+    parser.add_argument(
+        '--explorer-mse-loss',
+        default=False,
+        action='store_true',
+        help='Add MSE loss to the loss to prevent policy from becoming too det.')
+
     args = parser.parse_args()
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()

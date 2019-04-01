@@ -74,8 +74,20 @@ def main():
             args.num_steps, args.num_processes,
             envs.observation_space.shape, envs.action_space,
             actor_critic.recurrent_hidden_state_size)
-    exploration_manager = GaussianExplorer()
-    #exploration_manager = DecayExplorer()
+
+    if args.explorer_type == 'Gaussian':
+        exploration_manager = GaussianExplorer(
+                mu=args.explorer_alpha0,
+                upper_bound=0.9,
+                spread=0.25,
+                soft=args.explorer_alphadelta)
+    elif args.explorer_type == 'Decay':
+        exploration_manager = DecayExplorer(
+                start_exploration=args.explorer_alpha0,
+                decay_rate=args.explorer_alphadelta)
+    else:
+        raise NotImplementedError(('Unknown exploration type. Please choose'
+                ' from `Gaussian` or `Decay`.'))
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
@@ -142,14 +154,15 @@ def main():
         value_loss, action_loss, dist_entropy, mean_correction = agent.update(rollouts)
 
         rollouts.after_update()
+
         if len(explorer_exp_params) >= EXPLORER_LAG:
             exploration_manager.update_exploration_distribution(
                 np.array(explorer_exp_params).reshape(-1),
                 np.array(explorer_episode_rewards).reshape(-1)
             )
-            # Clear for new batch of data (iid?)
-            #explorer_exp_params.clear()
-            #explorer_episode_rewards.clear()
+        # Clear for new batch of data (iid?)
+        #explorer_exp_params.clear()
+        #explorer_episode_rewards.clear()
 
         # save for every interval-th episode or for the last epoch
         if (j % args.save_interval == 0
