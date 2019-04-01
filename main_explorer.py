@@ -151,7 +151,10 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy, mean_correction = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy, mean_correction = agent.update(
+                rollouts,  # Batch of rollouts.
+                use_behaviour=not args.disable_explorer_log_mu,  # Disable behaviour evaluation
+                )
 
         rollouts.after_update()
 

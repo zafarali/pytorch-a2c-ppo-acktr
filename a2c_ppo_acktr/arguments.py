@@ -171,7 +171,11 @@ def get_args():
         default=False,
         action='store_true',
         help='Add MSE loss to the loss to prevent policy from becoming too det.')
-
+    parser.add_argument(
+        '--disable-explorer-log-mu',
+        default=False,
+        action='store_true',
+        help='Uses log pi instead of log mu in the REINFORCE gradient.')
     args = parser.parse_args()
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()
