@@ -23,6 +23,7 @@ class A2C_explorer(A2C_ACKTR):
 
         values = values.view(num_steps, num_processes, 1)
         #correction_ratios = correction_ratios.view(num_steps, num_processes, 1)
+        correction_ratios = torch.ones_like(correction_ratios).view(num_steps,num_processes, 1)
         action_log_probs = action_log_probs.view(num_steps, num_processes, 1)
         advantages = rollouts.returns[:-1] - values
         value_loss = (correction_ratios*(advantages.pow(2))).mean()
